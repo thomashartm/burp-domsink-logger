@@ -38,7 +38,6 @@ public class ResponseInjectionHandlerDelegate {
         }
 
         if (!this.isSinkLogEnabled.get()) {
-            //this.callbacks.printOutput("Ignoring response. Logging state: " + this.isSinkLogEnabled.get());
             return;
         }
 
@@ -57,9 +56,6 @@ public class ResponseInjectionHandlerDelegate {
             } catch (IOException e) {
                 this.callbacks.printError(e.getMessage());
             }
-        } else {
-            this.callbacks.printOutput("Ignoring response. Logging state: " + this.isSinkLogEnabled.get() + " and mime " + analyzedResponse
-                    .getInferredMimeType());
         }
     }
 

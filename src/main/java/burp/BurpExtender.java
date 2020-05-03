@@ -6,7 +6,6 @@ import org.apache.commons.lang3.StringUtils;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ItemEvent;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -60,9 +59,9 @@ public class BurpExtender implements IBurpExtender, IProxyListener, ITab {
 
     private void createUserInterface() {
         component = new JPanel();
-        this.pluginConfigurationPanel = new JPanel(new GridLayout(7,2,2,0));
+        this.pluginConfigurationPanel = new JPanel(new GridLayout(7, 2, 1, 0));
         this.pluginConfigurationPanel.add(new JLabel("DOM Sink Logging using Trusted Types. "
-                + "You might need to empty the browser cache before the payload getÄs effective.", SwingConstants.LEFT));
+                + "You might need to empty the browser cache before the payload is effective.", SwingConstants.LEFT));
 
         this.addLoggingEnabledCheckbox();
         this.addNeedleInputField();
@@ -92,30 +91,37 @@ public class BurpExtender implements IBurpExtender, IProxyListener, ITab {
 
         JTextField needleTextField = new JTextField("Enter a needle.", 20);
         currentNeedle.setText(this.injectionDelegate.getCurrentNeedle());
+        currentNeedle.setFocusable(true);
         needleTextField.setText("");
 
         Consumer<String> consumer = (textToReplace) -> {
-            if (StringUtils.isNotBlank(textToReplace)) {
-                this.injectionDelegate.setCurrentNeedle(textToReplace);
-                currentNeedle.setText(textToReplace);
-                needleTextField.setText("");
-            } else {
-                this.callbacks.printOutput("Needle text field is empty.");
-            }
+            final String taintString = StringUtils.isNotBlank(textToReplace) ? textToReplace : StringUtils.EMPTY;
+            this.injectionDelegate.setCurrentNeedle(taintString);
+
+            currentNeedle.setText(taintString);
+            needleTextField.setText(StringUtils.EMPTY);
         };
 
-        JButton saveAction = new JButton("Save Needle");
-        saveAction.addActionListener(event -> consumer.accept(needleTextField.getText()));
+        JButton saveNeedleAction = new JButton("Save Needle");
+        saveNeedleAction.addActionListener(event -> consumer.accept(needleTextField.getText()));
 
-        JButton saveDefaultAction = new JButton("Set Default Needle");
-        saveDefaultAction.addActionListener(event -> consumer.accept(Constants.TAINT_STRING_DEFAULT));
+        JButton revertToDefaultAction = new JButton("Set Default Needle");
+        revertToDefaultAction.addActionListener(event -> consumer.accept(Constants.TAINT_STRING_DEFAULT));
 
-        JPanel needlePanel = new JPanel(new GridLayout(2,1));
+        JButton clearNeedleAction = new JButton("Remove Needle");
+        clearNeedleAction.addActionListener(event -> consumer.accept(StringUtils.EMPTY));
+
+        JPanel needlePanel = new JPanel(new GridLayout(3, 2));
+
         needlePanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
         needlePanel.add(new JLabel("Current taint string (needle) to check for."));
         needlePanel.add(currentNeedle);
         needlePanel.add(needleTextField);
-        needlePanel.add(saveAction);
+
+        needlePanel.add(saveNeedleAction);
+        needlePanel.add(revertToDefaultAction);
+        needlePanel.add(clearNeedleAction);
+        needlePanel.add(new JLabel("Clear the needle to enable general logging for all sinks."));
 
         this.pluginConfigurationPanel.add(needlePanel);
     }
