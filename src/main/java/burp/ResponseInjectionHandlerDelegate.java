@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class ResponseInjectionHandlerDelegate {
 
@@ -47,9 +48,25 @@ public class ResponseInjectionHandlerDelegate {
         // inject only into html pages
         if (StringUtils.containsAny(analyzedResponse.getInferredMimeType(), "html", "HTML")) {
             List<String> headers = this.helpers.analyzeResponse(rawResponse).getHeaders();
+
+
+            // get rid of CSPs if logging is enabled
+            List<String> sanitizedHeaders = headers;
+            if (this.getIsSinkLogEnabled().get()) {
+                sanitizedHeaders = headers.stream()
+                        .map(header -> {
+                            if (this.getIsSinkLogEnabled().get() && header.contains("Content-Security-Policy: ")) {
+                                return StringUtils.EMPTY;
+                            }
+                            return header;
+                        })
+                        .filter(header -> StringUtils.isNotEmpty(header))
+                        .collect(Collectors.toList());
+            }
+
             try {
                 byte[] processedResponse = processResponse(rawResponse);
-                byte[] editedResponse = this.helpers.buildHttpMessage(headers, processedResponse);
+                byte[] editedResponse = this.helpers.buildHttpMessage(sanitizedHeaders, processedResponse);
 
                 message.getMessageInfo().setResponse(editedResponse);
                 message.setInterceptAction(message.ACTION_FOLLOW_RULES);
@@ -57,6 +74,7 @@ public class ResponseInjectionHandlerDelegate {
                 this.callbacks.printError(e.getMessage());
             }
         }
+
     }
 
     protected byte[] processResponse(byte[] rawResponse) throws IOException {
@@ -73,8 +91,8 @@ public class ResponseInjectionHandlerDelegate {
         return responseBody;
     }
 
-    protected String takeCareOfCSPs(final String responseBody){
-        if(this.getIsSinkLogEnabled().get()) {
+    protected String takeCareOfCSPs(final String responseBody) {
+        if (this.getIsSinkLogEnabled().get()) {
             return responseBody.replaceAll(Constants.CSP_DETECTION_PATTERN, StringUtils.EMPTY);
         }
         return responseBody;
