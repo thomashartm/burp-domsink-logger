@@ -7,21 +7,13 @@ import java.io.InputStreamReader;
 
 public class InjectionPayloadProvider {
 
-    public static final String TRUSTED_TYPES_PAYLOAD = "trusted-types-payload.js";
-
-    private static final String META_CSP_DEFAULT = "<meta http-equiv=content-security-policy content=\"trusted-types default\">\n";
-
-    private static final String SCRIPT = "<script src=\"https://w3c.github.io/webappsec-trusted-types/dist/es5/trustedtypes.build.js\" data-csp=\"trusted-types default;\"></script>\n";
-
-    private static final String INJECTED_SCRIPTS = SCRIPT + "<script>%s</script>\n";
-
     public String retrieveTrustedTypesCSPMetaTag() throws IOException {
-        return META_CSP_DEFAULT;
+        return Constants.META_CSP_DEFAULT;
     }
 
     public String retrieveTrustedTypesPayload() throws IOException {
-        String payload = readResourceInputStream(String.format("/%s", TRUSTED_TYPES_PAYLOAD));
-        return String.format(INJECTED_SCRIPTS,payload);
+        String payload = readResourceInputStream(String.format("/%s", Constants.TRUSTED_TYPES_PAYLOAD));
+        return String.format(Constants.INJECTED_SCRIPTS, payload);
     }
 
     private String readResourceInputStream(final String location) throws IOException {

@@ -1,15 +1,13 @@
 package burp;
 
-import biz.netcentric.security.InjectionPayloadProvider;
+import biz.netcentric.security.Constants;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ItemEvent;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * This plugin injects a trusted types default policy into a page.
@@ -27,90 +25,27 @@ public class BurpExtender implements IBurpExtender, IProxyListener, ITab {
 
     private IExtensionHelpers helpers;
 
-    private InjectionPayloadProvider payloadProvider;
-
-    private AtomicBoolean isSinkLogEnabled = new AtomicBoolean(false);
-
     private JPanel pluginConfigurationPanel;
+
+    private ResponseInjectionHandlerDelegate injectionDelegate;
+
+    private JPanel component;
 
     @Override
     public void registerExtenderCallbacks(IBurpExtenderCallbacks iBurpExtenderCallbacks) {
         this.callbacks = iBurpExtenderCallbacks;
         this.helpers = iBurpExtenderCallbacks.getHelpers();
 
+        this.injectionDelegate = new ResponseInjectionHandlerDelegate(callbacks, helpers);
         this.createUserInterface();
-        this.callbacks.addSuiteTab(this);
 
+        this.callbacks.addSuiteTab(this);
         this.callbacks.registerProxyListener(this);
-        this.payloadProvider = new InjectionPayloadProvider();
     }
 
     @Override
     public void processProxyMessage(boolean messageIsRequest, IInterceptedProxyMessage message) {
-        if (messageIsRequest){
-            return;
-        }
-
-        if(!this.isSinkLogEnabled.get()){
-            this.callbacks.printOutput("Ignoring response. Logging state: " + this.isSinkLogEnabled.get());
-            return;
-        }
-
-        byte[] rawResponse = message.getMessageInfo().getResponse();
-        final IResponseInfo analyzedResponse = this.helpers.analyzeResponse(rawResponse);
-
-        // inject only into html pages
-        if (StringUtils.containsAny(analyzedResponse.getInferredMimeType(), "html", "HTML")) {
-            List<String> headers = this.helpers.analyzeResponse(rawResponse).getHeaders();
-            try {
-                byte[] processedResponse = processResponse(rawResponse);
-                byte[] editedResponse = this.helpers.buildHttpMessage(headers, processedResponse);
-
-                message.getMessageInfo().setResponse(editedResponse);
-                message.setInterceptAction(message.ACTION_FOLLOW_RULES);
-            } catch (IOException e) {
-                this.callbacks.printError(e.getMessage());
-            }
-        }else{
-            this.callbacks.printOutput("Ignoring response. Logging state: " + this.isSinkLogEnabled.get() + " and mime " + analyzedResponse.getInferredMimeType());
-        }
-    }
-
-    protected byte[] processResponse(byte[] rawResponse) throws IOException {
-        final IResponseInfo analyzedResponse = this.helpers.analyzeResponse(rawResponse);
-
-        final byte[] responseBody = getResponseBody(rawResponse, analyzedResponse);
-        final String readableResponseBody = this.helpers.bytesToString(responseBody).trim();
-        final String responseLeftPeek = StringUtils.left(readableResponseBody, 100);
-
-        if (StringUtils.startsWithAny(responseLeftPeek.toLowerCase(), "<html", "<!doctype html")) {
-            return this.injectIntoHtml(readableResponseBody);
-        }
-
-        return responseBody;
-    }
-
-    protected byte[] injectIntoHtml(String readableResponseBody) throws IOException {
-        int headIndex = StringUtils.indexOfIgnoreCase(readableResponseBody, "<head");
-        if (headIndex > 0) {
-            final String metaCsp = this.payloadProvider.retrieveTrustedTypesCSPMetaTag();
-            final String trustedTypesPayload = this.payloadProvider.retrieveTrustedTypesPayload();
-            final String modifiedResponse = StringUtils
-                    .replaceOnceIgnoreCase(readableResponseBody, "<head>",
-                            "<head>" + metaCsp + trustedTypesPayload);
-            return this.helpers.stringToBytes(modifiedResponse);
-        }
-
-        return this.helpers.stringToBytes(readableResponseBody);
-    }
-
-    private boolean checkContentType(List<String> headers, String[] includedContentTypes) {
-        return false;
-    }
-
-    private byte[] getResponseBody(byte[] rawResponse, IResponseInfo analyzedResponse) {
-        int bodyOffset = analyzedResponse.getBodyOffset();
-        return Arrays.copyOfRange(rawResponse, bodyOffset, rawResponse.length);
+        this.injectionDelegate.handleResponseMessage(messageIsRequest, message);
     }
 
     @Override
@@ -120,27 +55,68 @@ public class BurpExtender implements IBurpExtender, IProxyListener, ITab {
 
     @Override
     public Component getUiComponent() {
-        return this.pluginConfigurationPanel;
+        return new JScrollPane(component);
     }
 
     private void createUserInterface() {
-        this.pluginConfigurationPanel = new JPanel();
-        this.pluginConfigurationPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
+        component = new JPanel();
+        this.pluginConfigurationPanel = new JPanel(new GridLayout(7,2,2,0));
+        this.pluginConfigurationPanel.add(new JLabel("DOM Sink Logging using Trusted Types. "
+                + "You might need to empty the browser cache before the payload getÄs effective.", SwingConstants.LEFT));
 
+        this.addLoggingEnabledCheckbox();
+        this.addNeedleInputField();
+
+        component.add(this.pluginConfigurationPanel);
+        callbacks.customizeUiComponent(component);
+    }
+
+    private void addLoggingEnabledCheckbox() {
         final JCheckBox triggerCheckbox = new JCheckBox(
-                "Enable Dom Sink logging.", this.isSinkLogEnabled.get());
+                "Enable Dom Sink logging.", this.injectionDelegate.getIsSinkLogEnabled().get());
         triggerCheckbox.addItemListener(event -> {
             if (event.getStateChange() == ItemEvent.SELECTED) {
-                this.isSinkLogEnabled.set(true);
+                this.injectionDelegate.setSinkLogging(true);
             } else {
-                this.isSinkLogEnabled.set(false);
+                this.injectionDelegate.setSinkLogging(false);
             }
-            this.callbacks.printOutput("Logging state: " + this.isSinkLogEnabled.get());
+            this.callbacks.printOutput("Logging state: " + this.injectionDelegate.getIsSinkLogEnabled().get());
         });
 
-        this.pluginConfigurationPanel.add(new JLabel("DOM Sink Logging using Trusted Types. "));
         this.pluginConfigurationPanel.add(triggerCheckbox);
-        this.pluginConfigurationPanel.add(new JLabel("You might need to empty the browser cache."));
+        this.pluginConfigurationPanel.add(new JLabel());
+    }
 
+    private void addNeedleInputField() {
+        JLabel currentNeedle = new JLabel("");
+
+        JTextField needleTextField = new JTextField("Enter a needle.", 20);
+        currentNeedle.setText(this.injectionDelegate.getCurrentNeedle());
+        needleTextField.setText("");
+
+        Consumer<String> consumer = (textToReplace) -> {
+            if (StringUtils.isNotBlank(textToReplace)) {
+                this.injectionDelegate.setCurrentNeedle(textToReplace);
+                currentNeedle.setText(textToReplace);
+                needleTextField.setText("");
+            } else {
+                this.callbacks.printOutput("Needle text field is empty.");
+            }
+        };
+
+        JButton saveAction = new JButton("Save Needle");
+        saveAction.addActionListener(event -> consumer.accept(needleTextField.getText()));
+
+        JButton saveDefaultAction = new JButton("Set Default Needle");
+        saveDefaultAction.addActionListener(event -> consumer.accept(Constants.TAINT_STRING_DEFAULT));
+
+        JPanel needlePanel = new JPanel(new GridLayout(2,1));
+        needlePanel.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+        needlePanel.add(new JLabel("Current taint string (needle) to check for."));
+        needlePanel.add(currentNeedle);
+        needlePanel.add(needleTextField);
+        needlePanel.add(saveAction);
+
+        this.pluginConfigurationPanel.add(needlePanel);
     }
 }
