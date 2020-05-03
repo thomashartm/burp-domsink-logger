@@ -1,4 +1,7 @@
 # Burp DOM Sink Logger
+[![Build Status Master](https://travis-ci.org/thomashartm/burp-domsink-logger.svg?branch=master)](https://travis-ci.org/thomashartm/burp-domsink-logger)
+[![Build Status Develop](https://travis-ci.org/thomashartm/burp-domsink-logger.svg?branch=develop)](https://travis-ci.org/thomashartm/burp-domsink-logger)
+
 The purpose of this plugin is to ease the identification of DOM XSS Sinks and sources.
 Injects a trusted types policy into a burp response to 
 log all DOM sinks where HTML is created and directly written into the DOM e.g. via innerHTML.
