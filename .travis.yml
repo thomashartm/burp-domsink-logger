@@ -1,0 +1,16 @@
+language: java
+jdk:
+  - openjdk11
+script: mvn verify -B
+after_success:
+  - if [ "$POST_COVERAGE" == "true" ]; then mvn -Pcoverage clean prepare-package coveralls:report; fi
+sudo: false
+cache:
+  directories:
+    - $HOME/.m2
+before_cache:
+  # don't cache snapshots
+  - find $HOME/.m2 -name *SNAPSHOT* -exec rm -r "{}" \;
+install: true
+notifications:
+email: false
