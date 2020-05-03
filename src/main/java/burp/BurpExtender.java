@@ -19,7 +19,7 @@ import java.util.function.Consumer;
  */
 public class BurpExtender implements IBurpExtender, IProxyListener, ITab {
 
-    private static final String EXTENSION_NAME = "Burp DomSink Injector";
+    private static final String EXTENSION_NAME = "Dom Injector";
 
     private IBurpExtenderCallbacks callbacks;
 
