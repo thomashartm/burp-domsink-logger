@@ -73,9 +73,17 @@ public class ResponseInjectionHandlerDelegate {
         return responseBody;
     }
 
+    protected String takeCareOfCSPs(final String responseBody){
+        if(this.getIsSinkLogEnabled().get()) {
+            return responseBody.replaceAll(Constants.CSP_DETECTION_PATTERN, StringUtils.EMPTY);
+        }
+        return responseBody;
+    }
+
     protected byte[] injectIntoHtml(String readableResponseBody) throws IOException {
         int headIndex = StringUtils.indexOfIgnoreCase(readableResponseBody, "<head");
         if (headIndex > 0) {
+            final String preparedResponse = takeCareOfCSPs(readableResponseBody);
             final String metaCsp = this.payloadProvider.retrieveTrustedTypesCSPMetaTag();
 
             String trustedTypesPayload = this.payloadProvider.retrieveTrustedTypesPayload();
@@ -86,7 +94,7 @@ public class ResponseInjectionHandlerDelegate {
             }
 
             final String modifiedResponse = StringUtils
-                    .replaceOnceIgnoreCase(readableResponseBody, "<head>",
+                    .replaceOnceIgnoreCase(preparedResponse, "<head>",
                             "<head>" + metaCsp + trustedTypesPayload);
             return this.helpers.stringToBytes(modifiedResponse);
         }

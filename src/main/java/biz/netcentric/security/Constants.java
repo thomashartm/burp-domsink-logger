@@ -11,4 +11,6 @@ public interface Constants {
     String TRUSTED_TYPES_FULL = "<script src=\"https://w3c.github.io/webappsec-trusted-types/dist/es5/trustedtypes.build.js\" data-csp=\"trusted-types default;\"></script>\n";
 
     String INJECTED_SCRIPTS = TRUSTED_TYPES_FULL + "<script>%s</script>\n";
+
+    String CSP_DETECTION_PATTERN = "<meta.*Content-Security-Policy.*>";
 }
