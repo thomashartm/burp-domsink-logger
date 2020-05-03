@@ -1,0 +1,12 @@
+Uuid: 5b9aca28-88cc-4e7c-a7d8-37e344d3c8a69
+ExtensionType: 1
+Name: Burp Dom Sink Injector
+RepoName: burp-domsink-injector
+ScreenVersion: 1.0.0
+SerialVersion: 1
+MinPlatformVersion: 0
+ProOnly: false
+Author: Thomas Hartmann
+ShortDescription: Injects a trusted types CSP and sink logger to detect HTML dom generation methods which process tainted strings form sources.
+EntryPoint:
+BuildCommand: mvn package -DskipTests=true -Dmaven.javadoc.skip=true -B
