@@ -9,10 +9,9 @@
     <version>1.0-SNAPSHOT</version>
 
     <name>burp-domsink-injector</name>
-    <description>burp-domsink-injector</description>
+    <description>The purpose of this plugin is to ease the identification of DOM XSS Sinks and sources and logging them in the browser console.</description>
 
-    <!-- FIXME change it to the project's website -->
-    <url>http://www.example.com</url>
+    <url>https://github.com/thomashartm/burp-domsink-logger</url>
 
     <properties>
         <!-- Project settings -->
