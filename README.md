@@ -3,8 +3,34 @@
 [![Build Status Develop](https://travis-ci.org/thomashartm/burp-domsink-logger.svg?branch=develop)](https://github.com/thomashartm/burp-domsink-logger/tree/develop)
 
 The purpose of this plugin is to ease the identification of DOM XSS Sinks and sources.
-Injects a trusted types policy into a burp response to 
-log all DOM sinks where HTML is created and directly written into the DOM e.g. via innerHTML.
+
+It injects a trusted types polyfill and default policy into a burp response to 
+log all DOM sinks where HTML gets created and directly written into the DOM 
+e.g. via innerHTML.
+
+The logging happens on the browser e.g. chrome console.
+
+# Requirements
+Requirements to use it:
+
+- Burp v2020.1 Community or Professional
+- Recent Browser e.g. Chrome
+- Proxy Switcher e.g. FoxyProxy
+
+Requirements to extend or build it:
+- Java 11
+- Maven
+- Idea e.g. IntelliJ or Eclipse
+
+# How to use it
+1. Install this plugin via the burp extender e.g. in Burp Community.
+2. Open your favorite browser and enable the developer tools via F12
+3. Proxy the relevant requests with Burp and your favorite proxy switcher.
+4. Enable the plugin. Go to the DomInjector Tab and select enable it via the checkbox.
+5. Either select a new taint needle or use the preset one. Inject it into a source e.g. window name or a cookie.
+6. If the taint value gets detected in a sink then it will get reported in the browser console.
+7. If you want to enable the way more verbose logging then remove the taint needle. This will set the plugin into reporting mode and all usages of createHtml and createScript and createScriptUrl functions will get reported. 
+
 
 ## Trusted Types Default Policy
 The plugin uses the trusted types default policy to inject a very tiny piece of logging and taint detection JS code.
@@ -20,6 +46,7 @@ It is configurable via the input field.
 Save it and reload you page to make any change effective.
 
 If you clear the field, then taint detection gets disabled and generic logging enabled. 
+
 
 
 # How to build and install
