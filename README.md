@@ -7,9 +7,19 @@ Injects a trusted types policy into a burp response to
 log all DOM sinks where HTML is created and directly written into the DOM e.g. via innerHTML.
 
 ## Trusted Types Default Policy
+The plugin uses the trusted types default policy to inject a very tiny piece of logging and taint detection JS code.
+
 The trusted types policy with a name "default", is a special one. 
 When an injection sink is passed a string this policy will be implicitly called by the user agent with the string value as the first argument, and the sink name as a second argument.
-This can be used to check the string value for previously tained parameter coming from a known source.
+This can be used to check the string value for taint values coming from a known source, such as our needle value which can be configured in the burp plugin tab.
+
+## Taint value detection vs. logging
+Go to the Dom Injector plugin tab to enable and disable the plugin. 
+A taint value is set by default.
+It is configurable via the input field. 
+Save it and reload you page to make any change effective.
+
+If you clear the field, then taint detection gets disabled and generic logging enabled. 
 
 
 # How to build and install
@@ -20,3 +30,12 @@ Run maven  to build the plugin.
     
 Go to the Burp Extender tab, 
 click on "Add" and select the plugin from the target folder.
+
+# Contributions
+Feel free to raise feature requests or report bugs as a github issue.
+Any contributions are welcome, 
+just create and issue and raise a pull request.
+
+# License
+All contents of this repository as well as the 
+compiled output fall under the attached GNU GPL v3 license.
