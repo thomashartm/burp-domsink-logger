@@ -60,8 +60,9 @@ click on "Add" and select the plugin from the target folder.
 
 # Contributions
 Feel free to raise feature requests or report bugs as a github issue.
-Any contributions are welcome, 
-just create and issue and raise a pull request.
+Any contributions are welcome.
+Please follow the linked contribution guidelines
+https://gist.github.com/MarcDiethelm/7303312
 
 # License
 All contents of this repository as well as the 
