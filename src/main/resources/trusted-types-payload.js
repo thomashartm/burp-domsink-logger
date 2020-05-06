@@ -26,6 +26,10 @@ trustedTypes.createPolicy('default',{
         report(s, sink);
         return s;
     },
+    createURL: (s, sink) => {
+        report(s, sink);
+        return s;
+    },
     createScript: (s, sink) => {
         report(s, sink);
         return s;

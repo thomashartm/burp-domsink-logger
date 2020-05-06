@@ -4,13 +4,15 @@ import biz.netcentric.security.Constants;
 import biz.netcentric.security.InjectionPayloadProvider;
 import org.apache.commons.lang3.StringUtils;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-public class ResponseInjectionHandlerDelegate {
+public class ResponseInjectionHandlerDelegate implements PropertyChangeListener {
 
     private IBurpExtenderCallbacks callbacks;
 
@@ -21,6 +23,8 @@ public class ResponseInjectionHandlerDelegate {
     private AtomicBoolean isSinkLogEnabled = new AtomicBoolean(false);
 
     private String currentNeedle;
+
+    private AtomicBoolean isTaintMode = new AtomicBoolean(false);
 
     public ResponseInjectionHandlerDelegate(IBurpExtenderCallbacks callbacks, IExtensionHelpers helpers) {
         this.callbacks = callbacks;
@@ -48,7 +52,6 @@ public class ResponseInjectionHandlerDelegate {
         // inject only into html pages
         if (StringUtils.containsAny(analyzedResponse.getInferredMimeType(), "html", "HTML")) {
             List<String> headers = this.helpers.analyzeResponse(rawResponse).getHeaders();
-
 
             // get rid of CSPs if logging is enabled
             List<String> sanitizedHeaders = headers;
@@ -107,8 +110,13 @@ public class ResponseInjectionHandlerDelegate {
             String trustedTypesPayload = this.payloadProvider.retrieveTrustedTypesPayload();
             if (StringUtils.isNotBlank(this.currentNeedle)) {
                 trustedTypesPayload = trustedTypesPayload
-                        .replace("const TAINT_VALUE = \"\";", "const TAINT_VALUE = \"" + this.currentNeedle + "\";")
-                        .replace("const checkTaint = false;", "const checkTaint = true;");
+                        .replace("const TAINT_VALUE = \"\";", "const TAINT_VALUE = \"" + this.currentNeedle + "\";");
+            }
+
+            if(this.isTaintMode.get()){
+                trustedTypesPayload = trustedTypesPayload.replace("const checkTaint = false;", "const checkTaint = true;");
+            }else{
+                trustedTypesPayload = trustedTypesPayload.replace("const checkTaint = true;", "const checkTaint = false;");
             }
 
             final String modifiedResponse = StringUtils
@@ -135,5 +143,19 @@ public class ResponseInjectionHandlerDelegate {
 
     public String getCurrentNeedle() {
         return currentNeedle;
+    }
+
+    @Override
+    public void propertyChange(PropertyChangeEvent event) {
+        final String propertyName = event.getPropertyName();
+        final Object eventValue = event.getNewValue();
+
+        if (Property.ENABLED.same(propertyName)) {
+            this.isSinkLogEnabled.set((Boolean) eventValue);
+        } else if (Property.OPERATIONS_MODE.same(propertyName)) {
+            this.isTaintMode.set((Boolean) eventValue);
+        } else if (Property.TAINT_NEEDLE.same(propertyName)) {
+            this.currentNeedle = (String) eventValue;
+        }
     }
 }
