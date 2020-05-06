@@ -74,7 +74,7 @@ The plugin is using currently injecting ES5 polyfill.
 The plugin uses the trusted types default policy to inject a very tiny piece of logging and taint detection JS code.
 
 The trusted types policy with a name "default", is a special one. 
-When an injection sink is passed a string this policy will be implicitly called by the user agent with the string value as the first argument, and the sink name as a second argument.
+When an value is passed to an injection sink, this policy will be implicitly called by the user agent with the string value as the first argument, and the sink name as a second argument.
 This can be used to check the string value for taint values coming from a known source, such as our needle value which can be configured in the burp plugin tab.
 
 
